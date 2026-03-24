@@ -1,0 +1,110 @@
+Metadata-Version: 2.4
+Name: fastapi-langchain-backend
+Version: 0.1.0
+Summary: A FastAPI backend project with LangChain integration.
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi<1.0.0,>=0.115.0
+Requires-Dist: langchain<2.0.0,>=1.2.0
+Requires-Dist: langchain-openai<2.0.0,>=1.1.0
+Requires-Dist: pydantic-settings<3.0.0,>=2.3.0
+Requires-Dist: python-dotenv<2.0.0,>=1.0.1
+Requires-Dist: uvicorn[standard]<1.0.0,>=0.30.0
+Provides-Extra: dev
+Requires-Dist: httpx<1.0.0,>=0.27.0; extra == "dev"
+Requires-Dist: pytest<9.0.0,>=8.3.0; extra == "dev"
+
+# FastAPI LangChain Backend
+
+一个基于 FastAPI 的 Python 后端模板，已经完成基础配置，并接入了 LangChain。
+
+## 功能
+
+- FastAPI 项目基础骨架
+- 基于 `pydantic-settings` 的环境变量配置
+- CORS 配置
+- 健康检查接口
+- LangChain 聊天接口示例
+- `.env.example` 示例配置
+- 基础测试示例
+
+## 项目结构
+
+```text
+.
+├── app
+│   ├── api
+│   │   ├── router.py
+│   │   └── routes
+│   │       ├── chat.py
+│   │       └── health.py
+│   ├── core
+│   │   ├── config.py
+│   │   └── logging.py
+│   ├── schemas
+│   │   └── chat.py
+│   ├── services
+│   │   └── langchain_service.py
+│   └── main.py
+├── tests
+│   └── test_health.py
+├── .env.example
+├── pyproject.toml
+└── README.md
+```
+
+## 快速开始
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+cp .env.example .env
+uvicorn app.main:app --reload
+```
+
+服务启动后访问：
+
+- 根路径：`http://127.0.0.1:8000/`
+- 健康检查：`http://127.0.0.1:8000/api/v1/health`
+- 聊天接口：`POST http://127.0.0.1:8000/api/v1/chat`
+
+## LangChain 配置
+
+默认使用 `langchain-openai` 的 `ChatOpenAI` 作为模型接入层，请在 `.env` 中至少配置：
+
+```env
+OPENAI_API_KEY=your_api_key
+LLM_MODEL=gpt-4o-mini
+```
+
+如果你使用代理或兼容 OpenAI 的模型服务，也可以配置：
+
+```env
+OPENAI_BASE_URL=https://your-openai-compatible-endpoint/v1
+```
+
+如果你希望开启 LangSmith tracing，可以额外配置：
+
+```env
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=your_langsmith_api_key
+LANGSMITH_PROJECT=fastapi-langchain-backend
+```
+
+## 请求示例
+
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/chat" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "请介绍一下 FastAPI",
+    "system_prompt": "你是一个专业的 Python 后端助手。"
+  }'
+```
+
+## 测试
+
+```bash
+pytest
+```
