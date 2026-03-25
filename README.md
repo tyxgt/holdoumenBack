@@ -153,6 +153,7 @@ LLM_MODEL=gpt-4o-mini
 ### 4.3 启动服务
 
 ```bash
+source .venv/bin/activate
 uvicorn app.main:app --reload
 ```
 
