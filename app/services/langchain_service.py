@@ -4,6 +4,7 @@ This file hides provider-specific model setup from the API layer and exposes a
 simple async `chat` method for the rest of the application.
 """
 
+from collections.abc import AsyncIterator
 from functools import lru_cache
 
 from langchain_core.output_parsers import StrOutputParser
@@ -48,17 +49,30 @@ class LangChainService:
 
         return ChatOpenAI(**kwargs)
 
-    async def chat(self, user_message: str, system_prompt: str | None = None) -> str:
-        # Compose a minimal prompt -> model -> string-output chain so callers
-        # receive plain text instead of provider-specific message objects.
+    def _build_chain(self, system_prompt: str | None = None):
+        # Keep prompt composition in one place so sync/stream paths stay aligned.
         prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", system_prompt or "You are a helpful AI assistant."),
                 ("human", "{user_input}"),
             ]
         )
-        chain = prompt | self._build_llm() | StrOutputParser()
+        return prompt | self._build_llm() | StrOutputParser()
+
+    async def chat(self, user_message: str, system_prompt: str | None = None) -> str:
+        # Compose a minimal prompt -> model -> string-output chain so callers
+        # receive plain text instead of provider-specific message objects.
+        chain = self._build_chain(system_prompt=system_prompt)
         return await chain.ainvoke({"user_input": user_message})
+
+    async def stream_chat(
+        self, user_message: str, system_prompt: str | None = None
+    ) -> AsyncIterator[str]:
+        # Yield partial text chunks as soon as the provider emits them.
+        chain = self._build_chain(system_prompt=system_prompt)
+        async for chunk in chain.astream({"user_input": user_message}):
+            if chunk:
+                yield chunk
 
 
 @lru_cache

@@ -4,7 +4,10 @@ This module exposes the HTTP route that receives user messages and forwards them
 to the LangChain service layer.
 """
 
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 
 from app.core.config import Settings, get_settings
 from app.schemas.chat import ChatRequest, ChatResponse
@@ -22,8 +25,44 @@ async def chat(
     payload: ChatRequest,
     service: LangChainService = Depends(get_langchain_service),
     settings: Settings = Depends(get_settings),
-) -> ChatResponse:
+) -> ChatResponse | StreamingResponse:
     try:
+        if payload.stream:
+            async def event_stream():
+                meta = {
+                    "model": settings.resolved_model,
+                    "provider": settings.normalized_provider,
+                }
+                yield f"event: meta\ndata: {json.dumps(meta, ensure_ascii=False)}\n\n"
+
+                try:
+                    async for chunk in service.stream_chat(
+                        user_message=payload.message,
+                        system_prompt=payload.system_prompt,
+                    ):
+                        yield (
+                            "event: delta\ndata: "
+                            f"{json.dumps({'delta': chunk}, ensure_ascii=False)}\n\n"
+                        )
+                except Exception as exc:
+                    yield (
+                        "event: error\ndata: "
+                        f"{json.dumps({'detail': str(exc)}, ensure_ascii=False)}\n\n"
+                    )
+                    return
+
+                yield "event: done\ndata: [DONE]\n\n"
+
+            return StreamingResponse(
+                event_stream(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no",
+                },
+            )
+
         # Delegate LLM invocation to the service layer so provider logic stays
         # outside the route handler.
         content = await service.chat(

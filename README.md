@@ -203,6 +203,24 @@ curl -X POST "http://127.0.0.1:8000/api/v1/chat" \
 }
 ```
 
+### 5.3 调用流式聊天（SSE）
+
+在请求体中加上 `stream: true`，接口会返回 `text/event-stream`，并持续推送事件：
+
+- `event: meta`：本次请求的模型和 provider 信息
+- `event: delta`：增量文本片段
+- `event: done`：流结束标记
+
+```bash
+curl -N -X POST "http://127.0.0.1:8000/api/v1/chat" \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" \
+  -d '{
+    "message": "请用三句话介绍 FastAPI",
+    "stream": true
+  }'
+```
+
 ## 6. 如果我要继续开发，应该改哪里
 
 常见需求和对应入口如下：
