@@ -1,7 +1,6 @@
 """FastAPI application entrypoint.
-
-This file is responsible for application startup, runtime environment setup,
-middleware registration, and mounting all API routes.
+# 应用入口入口
+# 负责应用的启动、运行环境设置、中间件注册和路由挂载。
 """
 
 from contextlib import asynccontextmanager
@@ -17,9 +16,10 @@ from app.core.logging import configure_logging
 settings = get_settings()
 configure_logging(settings.debug)
 
-
+# 配置运行时环境
 def configure_runtime_environment() -> None:
-    # Push LangSmith-related settings into process env vars before LangChain runs.
+    # 配置 LangSmith 相关环境变量
+    # 用于 LangChain 运行时使用
     if settings.langsmith_api_key:
         os.environ["LANGSMITH_API_KEY"] = settings.langsmith_api_key
     if settings.langsmith_project:

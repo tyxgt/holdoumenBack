@@ -3,6 +3,9 @@
 This file loads values from `.env`, normalizes provider-specific configuration,
 and exposes a cached settings object for the rest of the project.
 """
+# 中央应用设置模块
+# 负责加载环境变量、归一化供应商特定配置并缓存设置对象。
+# 该模块在应用启动时加载一次，后续请求从缓存中获取设置对象。
 
 from functools import lru_cache
 from typing import Annotated
@@ -85,5 +88,5 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    # Cache settings so repeated dependency injection does not re-parse `.env`.
+    # 获取应用配置
     return Settings()
