@@ -5,6 +5,8 @@
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
+from app.core.prompts import SYSTEM_PROMPT
+
 
 class ChatRequest(BaseModel):
     """聊天请求体模型。
@@ -26,7 +28,7 @@ class ChatRequest(BaseModel):
     )
     # 系统提示词，可选；不传时使用默认角色设定。
     system_prompt: str | None = Field(
-        default="You are a helpful AI assistant.",
+        default=SYSTEM_PROMPT,
         description="可选系统提示词。",
     )
     # 是否启用流式返回；开启后接口会以 SSE 方式逐段返回模型输出。

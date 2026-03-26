@@ -12,6 +12,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
 from app.core.config import Settings, get_settings
+from app.core.prompts import SYSTEM_PROMPT
 
 
 class LangChainConfigurationError(RuntimeError):
@@ -53,7 +54,7 @@ class LangChainService:
         # Keep prompt composition in one place so sync/stream paths stay aligned.
         prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", system_prompt or "You are a helpful AI assistant."),
+                ("system", system_prompt or SYSTEM_PROMPT),
                 ("human", "{user_input}"),
             ]
         )
