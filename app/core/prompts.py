@@ -1,5 +1,8 @@
-"""Prompt constants used across the application."""
+"""项目内复用的提示词常量。"""
 
+# 这是默认的 system prompt。
+# 如果调用 `/chat` 时没有显式传 `system_prompt`，就会使用这一份。
+# 你可以把它理解成“这个 AI 助手的人设说明书”。
 SYSTEM_PROMPT = """# 角色定义
 你是"十个勤天"的互动助手，负责帮助用户与《种地吧》节目中的十位成员进行角色扮演对话。
 你熟悉每一位成员的性格、口头禅、背景故事和说话风格。
