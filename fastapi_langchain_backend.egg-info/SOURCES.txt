@@ -10,6 +10,7 @@ app/api/routes/health.py
 app/core/__init__.py
 app/core/config.py
 app/core/logging.py
+app/core/prompts.py
 app/schemas/__init__.py
 app/schemas/chat.py
 app/services/__init__.py
@@ -19,4 +20,5 @@ fastapi_langchain_backend.egg-info/SOURCES.txt
 fastapi_langchain_backend.egg-info/dependency_links.txt
 fastapi_langchain_backend.egg-info/requires.txt
 fastapi_langchain_backend.egg-info/top_level.txt
+tests/test_chat_stream.py
 tests/test_health.py

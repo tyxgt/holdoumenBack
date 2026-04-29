@@ -9,11 +9,11 @@ from app.services.langchain_service import get_langchain_service
 
 
 class _FakeLangChainService:
-    async def chat(self, user_message: str, system_prompt: str | None = None) -> str:
-        return f"echo:{user_message}:{system_prompt or ''}"
+    async def chat(self, user_message: str, character: str) -> str:
+        return f"echo:{user_message}:{character}"
 
     async def stream_chat(
-        self, user_message: str, system_prompt: str | None = None
+        self, user_message: str, character: str
     ) -> AsyncIterator[str]:
         yield "hello"
         yield " "
@@ -27,7 +27,7 @@ def test_chat_stream_returns_sse_events() -> None:
         with TestClient(app) as client:
             response = client.post(
                 "/api/v1/chat",
-                json={"message": "hi", "system_prompt": "sp", "stream": True},
+                json={"message": "hi", "character": "蒋敦豪", "stream": True},
             )
     finally:
         app.dependency_overrides.clear()
@@ -47,7 +47,7 @@ def test_chat_non_stream_keeps_json_contract() -> None:
         with TestClient(app) as client:
             response = client.post(
                 "/api/v1/chat",
-                json={"message": "hi", "system_prompt": "sp", "stream": False},
+                json={"message": "hi", "character": "蒋敦豪", "stream": False},
             )
     finally:
         app.dependency_overrides.clear()
@@ -55,5 +55,36 @@ def test_chat_non_stream_keeps_json_contract() -> None:
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("application/json")
     payload = response.json()
-    assert payload["answer"] == "echo:hi:sp"
+    assert payload["answer"] == "echo:hi:蒋敦豪"
     assert payload["provider"] in {"openai", "ark"}
+
+
+def test_chat_invalid_character_returns_400() -> None:
+    app.dependency_overrides[get_langchain_service] = lambda: _FakeLangChainService()
+
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/v1/chat",
+                json={"message": "hi", "character": "无效角色", "stream": False},
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 400
+    assert "无效的角色名" in response.json()["detail"]
+
+
+def test_chat_missing_character_returns_422() -> None:
+    app.dependency_overrides[get_langchain_service] = lambda: _FakeLangChainService()
+
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/v1/chat",
+                json={"message": "hi", "stream": False},
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 422
