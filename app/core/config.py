@@ -58,6 +58,20 @@ class Settings(BaseSettings):
     langsmith_project: str | None = "fastapi-langchain-backend"
     langsmith_endpoint: str | None = None
 
+    # 数据库配置
+    # 真实连接信息只应放在 `.env` 或部署平台环境变量中，不要提交到仓库。
+    # PostgreSQL 推荐优先使用 DATABASE_URL；如果部署平台仅提供拆分字段，
+    # 可使用 PGHOST / PGPORT / PGUSER / PGPASSWORD / PGDATABASE。
+    database_url: str | None = None
+    database_echo: bool = False
+    database_pool_size: int = Field(default=5, ge=1)
+    database_max_overflow: int = Field(default=10, ge=0)
+    pghost: str | None = None
+    pgport: int = 5432
+    pguser: str | None = None
+    pgpassword: str | None = None
+    pgdatabase: str | None = None
+
     # 告诉 Pydantic 去哪里找环境变量。
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -109,6 +123,22 @@ class Settings(BaseSettings):
         if self.normalized_provider == "ark":
             return self.ark_model or self.llm_model
         return self.llm_model
+
+    @property
+    def resolved_database_url(self) -> str | None:
+        """返回最终生效的数据库连接串。
+
+        优先使用标准的 `DATABASE_URL`；如果只配置了 PostgreSQL 拆分变量，
+        则动态拼装 SQLAlchemy 异步连接串，避免在代码或模板中暴露真实密码。
+        """
+        if self.database_url:
+            return self.database_url
+        if not all([self.pghost, self.pguser, self.pgpassword, self.pgdatabase]):
+            return None
+        return (
+            f"postgresql+asyncpg://{self.pguser}:{self.pgpassword}"
+            f"@{self.pghost}:{self.pgport}/{self.pgdatabase}"
+        )
 
 
 @lru_cache

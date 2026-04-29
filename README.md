@@ -1,45 +1,29 @@
 # FastAPI LangChain Backend
 
-这是一个基于 FastAPI 的 Python 后端模板，已经完成基础服务配置，并接入了 LangChain。当前项目已经支持两种模型接入方式：
+一个基于 FastAPI + LangChain 的 Python 后端服务模板，已内置基础工程结构、统一配置管理、健康检查接口、普通聊天接口和 SSE 流式聊天接口。
+
+当前项目支持两类大模型接入方式：
 
 - OpenAI
 - 火山方舟 Ark（通过 OpenAI 兼容接口接入）
 
-如果你是第一次接手这个项目，建议先看完这份 README，再开始改代码。
+项目配置统一从环境变量或本地 `.env` 文件读取。真实 API Key、数据库密码、数据库连接串等敏感信息只应放在 `.env` 或部署平台环境变量中，不要提交到 Git 仓库。
 
-## 1. 新人先看哪些文件
+## 功能概览
 
-下面这些文件是你最需要关注的：
+- FastAPI 应用工厂与生命周期骨架
+- 统一 API 前缀，默认 `/api/v1`
+- CORS 跨域配置
+- Pydantic Settings 环境变量管理
+- OpenAI / Ark 模型供应商切换
+- LangChain 聊天服务封装
+- 非流式聊天接口
+- SSE 流式聊天接口
+- 健康检查接口
+- PostgreSQL 数据库连接配置预留
+- pytest 基础测试入口
 
-- `app/main.py`
-  - 项目启动入口。
-  - 负责创建 FastAPI 应用、挂载中间件、注册总路由。
-- `app/core/config.py`
-  - 所有环境变量配置都在这里统一读取。
-  - 如果后面要新增配置项，优先改这个文件。
-- `app/api/router.py`
-  - API 总路由汇总入口。
-  - 新增业务路由时，最后要在这里注册。
-- `app/api/routes/chat.py`
-  - 对外提供聊天接口。
-  - 负责接收请求、调用服务层、返回统一响应。
-- `app/services/langchain_service.py`
-  - LangChain 和模型接入的核心逻辑。
-  - 如果你要换模型供应商、改提示词链路、加流式输出，优先从这里开始。
-- `app/schemas/chat.py`
-  - 请求和响应的数据结构定义。
-  - 当前前后端接口字段就是以这里为准。
-- `.env`
-  - 本地运行时真实配置。
-  - 这里通常放 API Key、模型名、服务地址。
-- `.env.example`
-  - 配置模板。
-  - 新人第一次接手项目时，一般从它复制一份生成 `.env`。
-- `tests/test_health.py`
-  - 当前的基础烟雾测试。
-  - 后续新增接口后，建议补充对应测试。
-
-## 2. 项目目录说明
+## 项目结构
 
 ```text
 .
@@ -51,7 +35,8 @@
 │   │       └── health.py
 │   ├── core
 │   │   ├── config.py
-│   │   └── logging.py
+│   │   ├── logging.py
+│   │   └── prompts.py
 │   ├── schemas
 │   │   └── chat.py
 │   ├── services
@@ -59,120 +44,220 @@
 │   └── main.py
 ├── tests
 │   └── test_health.py
-├── .env
 ├── .env.example
+├── .gitignore
 ├── pyproject.toml
 └── README.md
 ```
 
-目录职责可以简单理解为：
+### 核心文件说明
 
-- `api/`
-  - 负责 HTTP 接口定义。
-- `schemas/`
-  - 负责请求和响应结构。
-- `services/`
-  - 负责业务逻辑和三方服务调用。
-- `core/`
-  - 负责配置、日志等基础设施能力。
-- `tests/`
-  - 负责测试。
+- `app/main.py`
+  - FastAPI 应用入口。
+  - 负责初始化配置、日志、CORS、根路由和业务路由。
+- `app/core/config.py`
+  - 全局配置中心。
+  - 负责读取 `.env` 和环境变量，并提供最终生效的模型、数据库等配置。
+- `app/core/logging.py`
+  - 日志初始化逻辑。
+- `app/core/prompts.py`
+  - 默认系统提示词。
+- `app/api/router.py`
+  - API 总路由入口。
+- `app/api/routes/health.py`
+  - 健康检查接口。
+- `app/api/routes/chat.py`
+  - 聊天接口和 SSE 流式聊天接口。
+- `app/schemas/chat.py`
+  - 聊天接口请求和响应模型。
+- `app/services/langchain_service.py`
+  - LangChain 和模型调用核心封装。
+- `.env.example`
+  - 环境变量模板，只能放示例值，不能放真实密钥。
+- `.env`
+  - 本地真实配置文件，已被 `.gitignore` 忽略，不应提交。
 
-## 3. 项目运行规则
+## 环境要求
 
-这些规则建议默认遵守：
+- Python >= 3.10
+- 推荐使用项目根目录下的 `.venv` 虚拟环境
+- 本地开发建议使用 macOS / Linux / WSL
 
-- Python 版本
-  - 当前开发环境已验证通过的是 Python 3.13。
-- 虚拟环境
-  - 默认使用项目根目录下的 `.venv`。
-  - 不建议混用全局 Python 依赖。
-- 配置来源
-  - 所有运行配置统一从 `.env` 读取。
-  - 不要把临时写死的 key、模型名、地址直接写进代码。
-- 模型切换规则
-  - `LLM_PROVIDER=openai` 时走 OpenAI 配置。
-  - `LLM_PROVIDER=ark` 时优先走 `ARK_API_KEY / ARK_BASE_URL / ARK_MODEL`。
-- API 前缀
-  - 默认统一挂在 `/api/v1` 下。
-  - 如果你改了 `API_PREFIX`，前端和文档也要一起改。
-- CORS 配置
-  - `CORS_ORIGINS` 目前支持逗号分隔写法。
-  - 例如：`http://localhost:3000,http://127.0.0.1:3000`
-- 密钥管理
-  - `.env` 不提交到仓库。
-  - `.env.example` 只保留模板，不放真实 key。
-- 改完代码后的最低验证
-  - 至少执行一次 `pytest`。
-  - 如果你改了配置或启动逻辑，最好再手动跑一次服务。
+当前开发环境已验证 Python 3.13 可用。
 
-## 4. 第一次运行怎么做
+## 快速开始
 
-### 4.1 安装依赖
+### 1. 创建并激活虚拟环境
 
 ```bash
 cd /Users/a58/tyx/llm/holdoumenBack
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev]"
 ```
 
-如果 `.venv` 已存在，只需要：
+如果 `.venv` 已经存在，只需要执行：
 
 ```bash
-cd /Users/a58/tyx/llm/holdoumenBack
 source .venv/bin/activate
 ```
 
-### 4.2 准备配置文件
+### 2. 安装依赖
 
-首次接手项目时：
+```bash
+pip install -e ".[dev]"
+```
+
+### 3. 准备环境变量
+
+首次运行时，从模板复制一份本地配置：
 
 ```bash
 cp .env.example .env
 ```
 
-当前项目已经配置为使用火山方舟，关键配置如下：
+然后根据实际情况修改 `.env`。
+
+## 环境变量配置
+
+### 基础服务配置
 
 ```env
-LLM_PROVIDER=ark
-ARK_API_KEY=your_ark_api_key
-ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
-ARK_MODEL=your_endpoint_id
+APP_NAME=FastAPI LangChain Backend
+APP_VERSION=0.1.0
+APP_ENV=development
+DEBUG=true
+HOST=0.0.0.0
+PORT=8000
+API_PREFIX=/api/v1
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+CORS_ALLOW_CREDENTIALS=false
 ```
 
-如果你想切回 OpenAI：
+说明：
+
+- `API_PREFIX` 默认是 `/api/v1`，最终接口会挂在这个前缀下。
+- `CORS_ORIGINS` 支持逗号分隔字符串，不需要写成 JSON 数组。
+- 如果需要允许多个前端域名，可以这样写：
+
+```env
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://example.com
+```
+
+### OpenAI 配置
+
+使用 OpenAI 时：
 
 ```env
 LLM_PROVIDER=openai
 OPENAI_API_KEY=your_openai_api_key
 OPENAI_BASE_URL=
 LLM_MODEL=gpt-4o-mini
+LLM_TEMPERATURE=0.2
+LLM_TIMEOUT=60
+LLM_MAX_RETRIES=2
 ```
 
-### 4.3 启动服务
+如果你使用 OpenAI 兼容代理，可以配置 `OPENAI_BASE_URL`。
+
+### 火山方舟 Ark 配置
+
+使用火山方舟时：
+
+```env
+LLM_PROVIDER=ark
+ARK_API_KEY=your_ark_api_key
+ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+ARK_MODEL=your_endpoint_id
+LLM_TEMPERATURE=0.2
+LLM_TIMEOUT=60
+LLM_MAX_RETRIES=2
+```
+
+说明：
+
+- Ark 通过 OpenAI 兼容接口接入。
+- 代码层仍然使用 LangChain 的 OpenAI 兼容客户端，这是正常的。
+- `ARK_MODEL` 通常填写方舟控制台中的 endpoint id 或模型部署标识。
+
+### LangSmith 配置
+
+如果需要 LangChain 链路追踪，可以开启：
+
+```env
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=your_langsmith_api_key
+LANGSMITH_PROJECT=fastapi-langchain-backend
+LANGSMITH_ENDPOINT=
+```
+
+不需要追踪时保持默认即可：
+
+```env
+LANGSMITH_TRACING=false
+```
+
+### 数据库配置
+
+项目已预留 PostgreSQL 数据库配置，推荐使用 `DATABASE_URL`。
+
+```env
+DATABASE_URL=postgresql+asyncpg://username:password@host:5432/database_name
+DATABASE_ECHO=false
+DATABASE_POOL_SIZE=5
+DATABASE_MAX_OVERFLOW=10
+```
+
+如果平台只提供拆分字段，也可以使用：
+
+```env
+PGHOST=your_database_host
+PGPORT=5432
+PGUSER=your_database_user
+PGPASSWORD=your_database_password
+PGDATABASE=your_database_name
+```
+
+配置优先级：
+
+1. 优先使用 `DATABASE_URL`
+2. 如果 `DATABASE_URL` 为空，则使用 `PGHOST / PGPORT / PGUSER / PGPASSWORD / PGDATABASE` 动态拼接连接串
+3. 如果两种方式都没有配置，则数据库连接串为空
+
+注意事项：
+
+- `.env.example` 中只能保留模板值，不能写真实数据库密码。
+- `.env` 已经在 `.gitignore` 中，不会被提交。
+- 如果部署平台提供的是普通连接串 `postgresql://...`，而项目后续使用 SQLAlchemy async engine，建议改成 `postgresql+asyncpg://...`。
+- 当前 README 只说明数据库配置方式；实际数据库引擎、Session、迁移和业务表结构需要在后续业务开发中补充。
+
+## 启动服务
+
+开发环境启动：
 
 ```bash
 source .venv/bin/activate
 uvicorn app.main:app --reload
 ```
 
-启动后默认访问地址：
+启动后默认访问：
 
 - 根路径：`http://127.0.0.1:8000/`
 - Swagger 文档：`http://127.0.0.1:8000/docs`
+- OpenAPI JSON：`http://127.0.0.1:8000/openapi.json`
 - 健康检查：`http://127.0.0.1:8000/api/v1/health`
 - 聊天接口：`POST http://127.0.0.1:8000/api/v1/chat`
 
-## 5. 怎么使用这个项目
+## 接口说明
 
-### 5.1 查看服务是否正常
+### 健康检查
+
+请求：
 
 ```bash
 curl http://127.0.0.1:8000/api/v1/health
 ```
 
-正常情况下会返回类似：
+响应示例：
 
 ```json
 {
@@ -183,7 +268,16 @@ curl http://127.0.0.1:8000/api/v1/health
 }
 ```
 
-### 5.2 调用聊天接口
+字段说明：
+
+- `status`：服务状态。
+- `environment`：当前运行环境。
+- `llm_provider`：当前配置的模型供应商。
+- `llm_configured`：是否已经配置可用的模型 API Key。
+
+### 普通聊天接口
+
+请求：
 
 ```bash
 curl -X POST "http://127.0.0.1:8000/api/v1/chat" \
@@ -194,23 +288,26 @@ curl -X POST "http://127.0.0.1:8000/api/v1/chat" \
   }'
 ```
 
-正常情况下会返回类似：
+响应示例：
 
 ```json
 {
   "answer": "FastAPI 是一个高性能的 Python Web 框架。",
-  "model": "ep-xxxx",
-  "provider": "ark"
+  "model": "gpt-4o-mini",
+  "provider": "openai"
 }
 ```
 
-### 5.3 调用流式聊天（SSE）
+请求字段：
 
-在请求体中加上 `stream: true`，接口会返回 `text/event-stream`，并持续推送事件：
+- `message`：必填，用户输入内容。
+- `content`：兼容旧字段，可替代 `message`。
+- `system_prompt`：可选，系统提示词；不传时使用默认提示词。
+- `stream`：可选，是否开启 SSE 流式返回，默认 `false`。
 
-- `event: meta`：本次请求的模型和 provider 信息
-- `event: delta`：增量文本片段
-- `event: done`：流结束标记
+### SSE 流式聊天接口
+
+请求：
 
 ```bash
 curl -N -X POST "http://127.0.0.1:8000/api/v1/chat" \
@@ -222,35 +319,27 @@ curl -N -X POST "http://127.0.0.1:8000/api/v1/chat" \
   }'
 ```
 
-## 6. 如果我要继续开发，应该改哪里
+服务端会返回 `text/event-stream`，事件类型包括：
 
-常见需求和对应入口如下：
+- `meta`：本次请求使用的模型和 provider 信息
+- `delta`：模型生成的增量文本片段
+- `error`：流式调用中的错误信息
+- `done`：流结束标记
 
-- 新增接口
-  - 在 `app/api/routes/` 下新增路由文件。
-  - 然后去 `app/api/router.py` 注册。
-- 新增请求/响应字段
-  - 修改 `app/schemas/` 里的 Pydantic 模型。
-- 新增业务逻辑
-  - 优先放到 `app/services/`。
-  - 路由层尽量只做参数接收和错误转换。
-- 新增配置项
-  - 修改 `app/core/config.py`。
-  - 再把示例值补到 `.env.example`。
-- 更换模型供应商
-  - 优先修改 `app/services/langchain_service.py` 和 `app/core/config.py`。
-- 开启链路追踪
-  - 使用 `LANGSMITH_TRACING / LANGSMITH_API_KEY / LANGSMITH_PROJECT`。
+事件格式示例：
 
-## 7. 常见注意事项
+```text
+event: meta
+data: {"model":"gpt-4o-mini","provider":"openai"}
 
-- `CORS_ORIGINS` 不是 JSON 数组，当前项目支持直接写逗号分隔字符串。
-- 火山方舟这里走的是 OpenAI 兼容接口，所以代码里仍然使用 `ChatOpenAI`，这是正常的。
-- 如果聊天接口报 500，优先检查 `.env` 中的 provider、api key、model 是否配对。
-- 如果聊天接口报 502，通常是上游模型调用失败，先检查 key、额度、endpoint、网络。
-- `.env` 里有真实密钥时，不要提交到 git。
+event: delta
+data: {"delta":"FastAPI"}
 
-## 8. 测试和校验
+event: done
+data: [DONE]
+```
+
+## 测试
 
 运行测试：
 
@@ -258,20 +347,143 @@ curl -N -X POST "http://127.0.0.1:8000/api/v1/chat" \
 pytest
 ```
 
-当前最基础的验证标准：
+建议在以下场景至少执行一次测试：
 
-- 服务可以正常启动。
-- `/api/v1/health` 能返回 200。
-- 聊天接口能正确读取当前 provider 配置。
+- 修改配置读取逻辑
+- 修改路由注册逻辑
+- 修改请求或响应 schema
+- 修改模型调用服务
+- 新增接口
 
-## 9. 建议的开发顺序
+## 开发规范
 
-如果你是第一次接这个项目，建议按下面顺序理解：
+### 配置规范
 
-1. 先看 `README.md`
-2. 再看 `app/main.py`
-3. 再看 `app/core/config.py`
-4. 再看 `app/api/routes/chat.py`
-5. 最后看 `app/services/langchain_service.py`
+- 所有运行配置统一放在 `.env` 或部署平台环境变量中。
+- 新增配置项时，需要同步修改：
+  - `app/core/config.py`
+  - `.env.example`
+  - 必要时更新 `README.md`
+- 不要在业务代码中写死 API Key、模型名、数据库地址或密码。
 
-按这个顺序看，基本就能把“配置怎么进来、请求怎么进来、模型怎么被调用、结果怎么返回”串起来。
+### 路由规范
+
+- 新增接口时，优先在 `app/api/routes/` 下新增独立路由文件。
+- 新增路由后，在 `app/api/router.py` 中统一注册。
+- 路由层只负责参数接收、依赖注入、响应组装和异常转换。
+- 业务逻辑尽量放到 `app/services/`。
+
+### Schema 规范
+
+- 请求和响应结构统一放在 `app/schemas/`。
+- 对外接口字段变更时，需要同步更新 README 或接口文档。
+- Pydantic 字段建议补充 `description`，方便 Swagger 展示。
+
+### 密钥管理规范
+
+- `.env` 不提交到 Git。
+- `.env.example` 只放模板值。
+- 不要在 README、测试代码、日志或异常信息中输出真实密钥。
+- 提交代码前建议检查：
+
+```bash
+git status --short
+git diff
+```
+
+## 常见问题
+
+### 1. `/api/v1/health` 返回 `llm_configured=false`
+
+说明当前 provider 对应的 API Key 没有配置成功。
+
+检查项：
+
+- `LLM_PROVIDER=openai` 时，检查 `OPENAI_API_KEY`。
+- `LLM_PROVIDER=ark` 时，检查 `ARK_API_KEY`。
+- 修改 `.env` 后需要重启服务。
+
+### 2. 聊天接口返回 500
+
+通常是模型配置错误。
+
+检查项：
+
+- `LLM_PROVIDER` 是否只写了 `openai` 或 `ark`。
+- 当前 provider 对应的 API Key 是否存在。
+- Ark 模式下 `ARK_MODEL` 是否填写正确。
+
+### 3. 聊天接口返回 502
+
+通常是上游模型调用失败。
+
+检查项：
+
+- API Key 是否有效。
+- 模型名或 endpoint id 是否正确。
+- 账号额度是否充足。
+- 当前网络是否能访问模型服务。
+- `OPENAI_BASE_URL` 或 `ARK_BASE_URL` 是否正确。
+
+### 4. CORS 报错
+
+检查 `.env` 中的 `CORS_ORIGINS` 是否包含前端页面的真实 Origin。
+
+例如前端运行在 `http://localhost:3000`：
+
+```env
+CORS_ORIGINS=http://localhost:3000
+```
+
+如果有多个来源，用逗号分隔：
+
+```env
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+```
+
+### 5. 数据库连接串应该怎么填
+
+推荐使用：
+
+```env
+DATABASE_URL=postgresql+asyncpg://username:password@host:5432/database_name
+```
+
+如果平台给的是拆分字段，则填写：
+
+```env
+PGHOST=host
+PGPORT=5432
+PGUSER=username
+PGPASSWORD=password
+PGDATABASE=database_name
+```
+
+不要把真实连接串写入 `.env.example`、README 或代码文件。
+
+## 后续开发建议
+
+如果要继续补充数据库能力，建议按以下顺序推进：
+
+1. 在 `pyproject.toml` 中增加数据库依赖，例如 SQLAlchemy 和 asyncpg。
+2. 新增 `app/db/session.py`，创建 async engine 和 session factory。
+3. 新增 `app/db/base.py`，统一管理 ORM Base。
+4. 按业务模块新增 models。
+5. 引入 Alembic 管理数据库迁移。
+6. 在路由中通过依赖注入获取数据库 session。
+7. 为数据库相关接口补充测试。
+
+## 推荐阅读顺序
+
+如果你是第一次接手这个项目，建议按下面顺序理解代码：
+
+1. `README.md`
+2. `app/main.py`
+3. `app/core/config.py`
+4. `app/api/router.py`
+5. `app/api/routes/health.py`
+6. `app/api/routes/chat.py`
+7. `app/schemas/chat.py`
+8. `app/services/langchain_service.py`
+
+按这个顺序看，可以比较清楚地理解：配置如何进入应用、请求如何进入路由、业务如何调用模型、结果如何返回给前端。
