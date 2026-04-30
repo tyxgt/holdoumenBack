@@ -1,6 +1,6 @@
 """FastAPI 应用入口。
 
-前端可以把这个文件理解成后端项目的“启动文件”：
+前端可以把这个文件理解成后端项目的"启动文件"：
 - 先读取全局配置
 - 再初始化日志和运行时环境
 - 最后创建 FastAPI 实例并挂载所有路由
@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
+from app.db.session import Base, engine
 
 # `get_settings()` 会从 `.env` 里读取配置，并且借助缓存保证全项目复用同一份设置。
 settings = get_settings()
@@ -51,10 +52,11 @@ async def lifespan(_: FastAPI):
     可以把它理解成应用级的 `onMounted / onUnmounted`：
     - `yield` 前面的代码会在服务启动时执行
     - `yield` 后面的代码会在服务关闭时执行
-
-    当前项目还没有额外的启动/销毁逻辑，所以这里只保留空骨架。
     """
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield
+    await engine.dispose()
 
 
 def create_app() -> FastAPI:

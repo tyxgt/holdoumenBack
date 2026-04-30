@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     # 但 `.env` 里通常会写成逗号分隔字符串，所以这里配合下面的 validator 做转换。
     # `NoDecode` 的作用是告诉 pydantic-settings：不要尝试把它当 JSON 自动解析。
     cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=lambda: ["*"])
-    cors_allow_credentials: bool = False
+    cors_allow_credentials: bool = True
 
     # LLM 通用配置
     llm_provider: str = "openai"
@@ -71,6 +71,11 @@ class Settings(BaseSettings):
     pguser: str | None = None
     pgpassword: str | None = None
     pgdatabase: str | None = None
+
+    # JWT 配置
+    jwt_secret_key: str | None = None
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 60 * 24 * 7
 
     # 告诉 Pydantic 去哪里找环境变量。
     model_config = SettingsConfigDict(
