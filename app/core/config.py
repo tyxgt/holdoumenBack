@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     langsmith_project: str | None = "fastapi-langchain-backend"
     langsmith_endpoint: str | None = None
 
+    # JWT 认证配置
+    jwt_secret_key: str = "change-this-to-a-random-secret-key-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 24 * 7  # 默认 7 天有效
+
     # 数据库配置
     # 真实连接信息只应放在 `.env` 或部署平台环境变量中，不要提交到仓库。
     # PostgreSQL 推荐优先使用 DATABASE_URL；如果部署平台仅提供拆分字段，

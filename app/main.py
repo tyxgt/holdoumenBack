@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.router import api_router
 from app.core.config import get_settings
+from app.core.database import init_db
 from app.core.logging import configure_logging
 
 # `get_settings()` 会从 `.env` 里读取配置，并且借助缓存保证全项目复用同一份设置。
@@ -51,9 +52,8 @@ async def lifespan(_: FastAPI):
     可以把它理解成应用级的 `onMounted / onUnmounted`：
     - `yield` 前面的代码会在服务启动时执行
     - `yield` 后面的代码会在服务关闭时执行
-
-    当前项目还没有额外的启动/销毁逻辑，所以这里只保留空骨架。
     """
+    await init_db()
     yield
 
 

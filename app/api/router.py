@@ -6,6 +6,7 @@
 
 from fastapi import APIRouter
 
+from app.api.routes.auth import router as auth_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.health import router as health_router
 
@@ -14,5 +15,6 @@ api_router = APIRouter()
 
 # 这里把健康检查和聊天接口合并到总路由里。
 # 后面如果新增用户、订单、文件上传等模块，也是在这里继续 include。
+api_router.include_router(auth_router)
 api_router.include_router(health_router)
 api_router.include_router(chat_router)

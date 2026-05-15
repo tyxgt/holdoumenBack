@@ -5,7 +5,11 @@ pydantic-settings<3.0.0,>=2.3.0
 python-dotenv<2.0.0,>=1.0.1
 uvicorn[standard]<1.0.0,>=0.30.0
 sqlalchemy<3.0.0,>=2.0.0
+greenlet<4.0.0,>=3.0.0
 asyncpg<1.0.0,>=0.29.0
+aiosqlite<1.0.0,>=0.20.0
+python-jose[cryptography]<4.0.0,>=3.3.0
+bcrypt<6.0.0,>=4.0.0
 
 [dev]
 httpx<1.0.0,>=0.27.0
